@@ -20,6 +20,53 @@ interface BibleBook {
   chapters: number;
 }
 
+interface BibleTranslation {
+  id: string;
+  name: string;
+  abbreviation: string;
+  language: string;
+  description: string;
+}
+
+// Available Bible translations
+export const BIBLE_TRANSLATIONS: BibleTranslation[] = [
+  {
+    id: 'kjv',
+    name: 'King James Version',
+    abbreviation: 'KJV',
+    language: 'English',
+    description: 'The classic 1611 translation'
+  },
+  {
+    id: 'esv',
+    name: 'English Standard Version',
+    abbreviation: 'ESV',
+    language: 'English',
+    description: 'Modern literal translation'
+  },
+  {
+    id: 'niv',
+    name: 'New International Version',
+    abbreviation: 'NIV',
+    language: 'English',
+    description: 'Popular modern translation'
+  },
+  {
+    id: 'nasb',
+    name: 'New American Standard Bible',
+    abbreviation: 'NASB',
+    language: 'English',
+    description: 'Literal and accurate translation'
+  },
+  {
+    id: 'nlt',
+    name: 'New Living Translation',
+    abbreviation: 'NLT',
+    language: 'English',
+    description: 'Clear and contemporary'
+  }
+];
+
 // Bible books data with complete structure
 export const BIBLE_BOOKS: BibleBook[] = [
   // Old Testament
@@ -96,16 +143,37 @@ export const BIBLE_BOOKS: BibleBook[] = [
 export class BibleApiService {
   private static readonly BASE_URL = 'https://bible-api.com';
   private static cache = new Map<string, any>();
+  private static currentTranslation = 'kjv';
+
+  // Set translation
+  static setTranslation(translationId: string): void {
+    this.currentTranslation = translationId;
+    // Clear cache when translation changes
+    this.cache.clear();
+  }
+
+  static getCurrentTranslation(): string {
+    return this.currentTranslation;
+  }
+
+  static getTranslationInfo(translationId: string): BibleTranslation | null {
+    return BIBLE_TRANSLATIONS.find(t => t.id === translationId) || null;
+  }
 
   // Get a specific verse
-  static async getVerse(book: string, chapter: number, verse: number): Promise<BibleVerse | null> {
+  static async getVerse(book: string, chapter: number, verse: number, translation?: string): Promise<BibleVerse | null> {
+    const trans = translation || this.currentTranslation;
     try {
-      const cacheKey = `${book}-${chapter}-${verse}`;
+      const cacheKey = `${trans}-${book}-${chapter}-${verse}`;
       if (this.cache.has(cacheKey)) {
         return this.cache.get(cacheKey);
       }
 
-      const response = await fetch(`${this.BASE_URL}/${book}${chapter}:${verse}`);
+      const url = trans === 'kjv' 
+        ? `${this.BASE_URL}/${book}${chapter}:${verse}`
+        : `${this.BASE_URL}/${book}${chapter}:${verse}?translation=${trans}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -128,14 +196,19 @@ export class BibleApiService {
   }
 
   // Get a full chapter
-  static async getChapter(book: string, chapter: number): Promise<BibleChapter | null> {
+  static async getChapter(book: string, chapter: number, translation?: string): Promise<BibleChapter | null> {
+    const trans = translation || this.currentTranslation;
     try {
-      const cacheKey = `${book}-${chapter}`;
+      const cacheKey = `${trans}-${book}-${chapter}`;
       if (this.cache.has(cacheKey)) {
         return this.cache.get(cacheKey);
       }
 
-      const response = await fetch(`${this.BASE_URL}/${book}${chapter}`);
+      const url = trans === 'kjv' 
+        ? `${this.BASE_URL}/${book}${chapter}`
+        : `${this.BASE_URL}/${book}${chapter}?translation=${trans}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -166,14 +239,19 @@ export class BibleApiService {
   }
 
   // Search verses
-  static async searchVerses(query: string): Promise<BibleVerse[]> {
+  static async searchVerses(query: string, translation?: string): Promise<BibleVerse[]> {
+    const trans = translation || this.currentTranslation;
     try {
-      const cacheKey = `search-${query}`;
+      const cacheKey = `search-${trans}-${query}`;
       if (this.cache.has(cacheKey)) {
         return this.cache.get(cacheKey);
       }
 
-      const response = await fetch(`${this.BASE_URL}/${encodeURIComponent(query)}`);
+      const url = trans === 'kjv' 
+        ? `${this.BASE_URL}/${encodeURIComponent(query)}`
+        : `${this.BASE_URL}/${encodeURIComponent(query)}?translation=${trans}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -200,7 +278,8 @@ export class BibleApiService {
   }
 
   // Get random verse for daily verse
-  static async getRandomVerse(): Promise<BibleVerse | null> {
+  static async getRandomVerse(translation?: string): Promise<BibleVerse | null> {
+    const trans = translation || this.currentTranslation;
     try {
       // Use a selection of meaningful verses for daily inspiration
       const inspirationalVerses = [
@@ -216,7 +295,11 @@ export class BibleApiService {
       const verseIndex = dayOfYear % inspirationalVerses.length;
       const selectedVerse = inspirationalVerses[verseIndex];
 
-      const response = await fetch(`${this.BASE_URL}/${selectedVerse}`);
+      const url = trans === 'kjv' 
+        ? `${this.BASE_URL}/${selectedVerse}`
+        : `${this.BASE_URL}/${selectedVerse}?translation=${trans}`;
+      
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

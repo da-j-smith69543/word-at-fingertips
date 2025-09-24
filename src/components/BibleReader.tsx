@@ -3,9 +3,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Book, ChevronLeft, ChevronRight, Bookmark, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Book, ChevronLeft, ChevronRight, Bookmark, RefreshCw, Wifi, WifiOff, Download, Settings } from 'lucide-react';
 import { bibleBooks, getChapter, type Verse } from '@/data/bible';
 import { useToast } from '@/hooks/use-toast';
+import { useBookmarks } from '@/hooks/use-bookmarks';
+import { usePreferences } from '@/hooks/use-preferences';
+import { LoadingState } from '@/components/ui/loading-spinner';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import StorageService from '@/services/StorageService';
+import { BibleApiService, BIBLE_TRANSLATIONS } from '@/services/BibleApiService';
 
 interface BibleReaderProps {
   selectedBook?: string;
@@ -15,11 +21,15 @@ interface BibleReaderProps {
 export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: BibleReaderProps) => {
   const [currentBook, setCurrentBook] = useState(selectedBook);
   const [currentChapter, setCurrentChapter] = useState(selectedChapter);
-  const [bookmarkedVerses, setBookmarkedVerses] = useState<Set<string>>(new Set());
   const [verses, setVerses] = useState<Verse[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isDownloading, setIsDownloading] = useState(false);
+  
   const { toast } = useToast();
+  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const { preferences } = usePreferences();
 
   // Monitor online status
   useEffect(() => {
@@ -38,23 +48,67 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
   // Load chapter content
   useEffect(() => {
     loadChapter();
+    // Update reading history
+    StorageService.updateReadingHistory(currentBook, currentChapter);
   }, [currentBook, currentChapter]);
+
+  // Apply font preferences
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--reader-font-size', getFontSizeValue(preferences.fontSize));
+    root.style.setProperty('--reader-font-family', getFontFamilyValue(preferences.fontFamily));
+  }, [preferences.fontSize, preferences.fontFamily]);
+
+  const getFontSizeValue = (size: string) => {
+    const sizes = { small: '0.875rem', medium: '1rem', large: '1.125rem', xl: '1.25rem' };
+    return sizes[size as keyof typeof sizes] || sizes.medium;
+  };
+
+  const getFontFamilyValue = (family: string) => {
+    const families = {
+      inter: 'Inter, sans-serif',
+      playfair: 'Playfair Display, serif',
+      system: 'system-ui, sans-serif'
+    };
+    return families[family as keyof typeof families] || families.inter;
+  };
 
   const loadChapter = async () => {
     setIsLoading(true);
+    setError(null);
+    
     try {
-      const chapterVerses = await getChapter(currentBook, currentChapter);
+      // Set translation before loading
+      BibleApiService.setTranslation(preferences.preferredTranslation);
+      
+      // Try to load from offline storage first
+      const offlineChapter = StorageService.getOfflineChapter(currentBook, currentChapter);
+      if (offlineChapter && !isOnline) {
+        setVerses(offlineChapter.verses);
+        return;
+      }
+      
+      const chapterVerses = await getChapter(currentBook, currentChapter, preferences.preferredTranslation);
       setVerses(chapterVerses);
       
-      if (chapterVerses.length === 0 && isOnline) {
+      // Save to offline storage if we got data
+      if (chapterVerses.length > 0) {
+        StorageService.saveOfflineChapter(currentBook, currentChapter, { verses: chapterVerses });
+      }
+      
+      if (chapterVerses.length === 0) {
         toast({
-          title: "Chapter Loading",
-          description: `Loading ${currentBook} ${currentChapter} from Bible API...`,
+          title: isOnline ? "Chapter Not Found" : "Chapter Not Available Offline",
+          description: isOnline 
+            ? `${currentBook} ${currentChapter} could not be loaded`
+            : `${currentBook} ${currentChapter} is not available offline`,
+          variant: isOnline ? "destructive" : "default",
           duration: 3000,
         });
       }
     } catch (error) {
       console.error('Error loading chapter:', error);
+      setError('Failed to load chapter. Please check your connection and try again.');
       toast({
         title: "Error",
         description: "Failed to load chapter. Please try again.",
@@ -66,27 +120,61 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
     }
   };
 
+  const downloadChapter = async () => {
+    if (!isOnline) {
+      toast({
+        title: "Offline",
+        description: "Connect to internet to download chapters",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setIsDownloading(true);
+    try {
+      await loadChapter(); // This will save to offline storage
+      toast({
+        title: "Chapter Downloaded",
+        description: `${currentBook} ${currentChapter} is now available offline`,
+        duration: 3000,
+      });
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
   const book = bibleBooks.find(b => b.name === currentBook);
   
   const toggleBookmark = (verse: Verse) => {
-    const verseKey = `${verse.book}-${verse.chapter}-${verse.verse}`;
-    const newBookmarks = new Set(bookmarkedVerses);
-    if (newBookmarks.has(verseKey)) {
-      newBookmarks.delete(verseKey);
-      toast({
-        title: "Bookmark Removed",
-        description: `${verse.book} ${verse.chapter}:${verse.verse}`,
-        duration: 2000,
-      });
+    const bookmarked = isBookmarked(verse.book, verse.chapter, verse.verse);
+    
+    if (bookmarked) {
+      // Find and remove the bookmark
+      const bookmarks = StorageService.getBookmarks();
+      const bookmark = bookmarks.find(b => 
+        b.book === verse.book && b.chapter === verse.chapter && b.verse === verse.verse
+      );
+      if (bookmark) {
+        removeBookmark(bookmark.id);
+      }
     } else {
-      newBookmarks.add(verseKey);
-      toast({
-        title: "Verse Bookmarked",
-        description: `${verse.book} ${verse.chapter}:${verse.verse}`,
-        duration: 2000,
+      addBookmark({
+        book: verse.book,
+        chapter: verse.chapter,
+        verse: verse.verse,
+        text: verse.text
       });
     }
-    setBookmarkedVerses(newBookmarks);
+  };
+
+  const handleTranslationChange = (translationId: string) => {
+    BibleApiService.setTranslation(translationId);
+    loadChapter();
+      toast({
+        title: "Translation Changed",
+        description: `Switched to ${BIBLE_TRANSLATIONS.find(t => t.id === translationId)?.name}`,
+        duration: 2000,
+      });
   };
 
   const navigateChapter = (direction: 'prev' | 'next') => {
@@ -100,6 +188,7 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
   };
 
   return (
+    <ErrorBoundary>
     <div className="max-w-4xl mx-auto p-6 space-y-6">
       {/* Navigation Header */}
       <Card className="card-divine">
@@ -125,6 +214,26 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
         </CardHeader>
         
         <CardContent className="space-y-4">
+          {/* Translation Selection */}
+          <div className="flex-1 min-w-48">
+            <label className="text-sm font-medium text-muted-foreground mb-2 block">Translation</label>
+            <Select 
+              value={preferences.preferredTranslation} 
+              onValueChange={handleTranslationChange}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {BIBLE_TRANSLATIONS.map(translation => (
+                  <SelectItem key={translation.id} value={translation.id}>
+                    {translation.abbreviation} - {translation.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
           {/* Book and Chapter Selection */}
           <div className="flex flex-wrap gap-4">
             <div className="flex-1 min-w-48">
@@ -180,12 +289,12 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
               <EnhancedButton
                 variant="ghost"
                 size="sm"
-                onClick={loadChapter}
-                disabled={isLoading}
+                onClick={downloadChapter}
+                disabled={isDownloading || !isOnline}
                 className="flex items-center space-x-2"  
               >
-                <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                <span>Refresh</span>
+                <Download className={`h-4 w-4 ${isDownloading ? 'animate-spin' : ''}`} />
+                <span>{isDownloading ? 'Downloading...' : 'Download'}</span>
               </EnhancedButton>
             </div>
             
@@ -206,30 +315,35 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
       {/* Scripture Content */}
       <Card className="card-divine">
         <CardContent className="pt-6">
-          {/* Chapter Header */}
-          <div className="text-center mb-6">
-            <h2 className="text-2xl font-semibold text-primary mb-2">
-              {currentBook} {currentChapter}
-            </h2>
-            <div className="flex justify-center items-center space-x-4 text-sm text-muted-foreground">
-              <span>{verses.length} verses</span>
-              {!isOnline && <span className="text-orange-500">• Limited offline content</span>}
+          <LoadingState 
+            isLoading={isLoading} 
+            error={error}
+            loadingText="Loading scripture..."
+            onRetry={loadChapter}
+          >
+            {/* Chapter Header */}
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-semibold text-primary mb-2">
+                {currentBook} {currentChapter}
+              </h2>
+              <div className="flex justify-center items-center space-x-4 text-sm text-muted-foreground">
+                <span>{verses.length} verses</span>
+                <span>•</span>
+                <span>{BIBLE_TRANSLATIONS.find(t => t.id === preferences.preferredTranslation)?.abbreviation}</span>
+                {!isOnline && <span className="text-orange-500">• Offline</span>}
+              </div>
             </div>
-          </div>
 
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin h-8 w-8 border-2 border-gold border-t-transparent rounded-full mx-auto mb-4"></div>
-              <p className="text-muted-foreground">Loading scripture...</p>
-            </div>
-          ) : verses.length > 0 ? (
-            <div className="space-y-4">
+            {verses.length > 0 ? (
+              <div className="space-y-4" style={{ 
+                fontSize: 'var(--reader-font-size)', 
+                fontFamily: 'var(--reader-font-family)' 
+              }}>
               {verses.map((verse) => {
-                const verseKey = `${verse.book}-${verse.chapter}-${verse.verse}`;
-                const isBookmarked = bookmarkedVerses.has(verseKey);
+                const bookmarked = isBookmarked(verse.book, verse.chapter, verse.verse);
                 
                 return (
-                  <div key={verseKey} className="group relative">
+                  <div key={`${verse.book}-${verse.chapter}-${verse.verse}`} className="group relative">
                     <div className="flex items-start space-x-3 p-4 rounded-lg hover:bg-accent/30 transition-colors">
                       <span className="text-verse-number flex-shrink-0 mt-1">
                         {verse.verse}
@@ -242,40 +356,26 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
                           variant="ghost"
                           size="icon"
                           onClick={() => toggleBookmark(verse)}
-                          className={`h-8 w-8 ${isBookmarked ? 'text-gold' : 'text-muted-foreground'}`}
+                          className={`h-8 w-8 ${bookmarked ? 'text-gold' : 'text-muted-foreground'}`}
                         >
-                          <Bookmark className={`h-4 w-4 ${isBookmarked ? 'fill-current' : ''}`} />
+                          <Bookmark className={`h-4 w-4 ${bookmarked ? 'fill-current' : ''}`} />
                         </EnhancedButton>
                       </div>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Book className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">Chapter Loading</h3>
-              <p className="text-muted-foreground mb-4">
-                {isOnline 
-                  ? `Loading ${currentBook} ${currentChapter} from Bible API...`
-                  : `${currentBook} ${currentChapter} not available offline`
-                }
-              </p>
-              {isOnline && (
-                <EnhancedButton onClick={loadChapter} variant="divine">
-                  Try Loading Again
-                </EnhancedButton>
-              )}
-              {!isOnline && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Connect to internet for full Bible access
-                </p>
-              )}
-            </div>
-          )}
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Book className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No verses available</p>
+              </div>
+            )}
+          </LoadingState>
         </CardContent>
       </Card>
     </div>
+    </ErrorBoundary>
   );
 };

@@ -3,22 +3,26 @@ import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { DailyVerse } from './DailyVerse';
 import { Book, Search, Bookmark, Clock, Heart, Star } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
+import StorageService from '@/services/StorageService';
+import { useEffect, useState } from 'react';
 
 interface EmpirialHomeProps {
   onNavigate: (tab: string) => void;
 }
 
 export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
+  const [recentBooks, setRecentBooks] = useState<any[]>([]);
+
+  useEffect(() => {
+    // Load recent reading history
+    const history = StorageService.getRecentBooks();
+    setRecentBooks(history.slice(0, 3)); // Show top 3
+  }, []);
+
   const quickActions = [
     { id: 'bible', label: 'Read Bible', icon: Book, description: 'Explore the scriptures' },
     { id: 'search', label: 'Search', icon: Search, description: 'Find specific verses' },
     { id: 'bookmarks', label: 'Bookmarks', icon: Bookmark, description: 'Your saved verses' },
-  ];
-
-  const recentBooks = [
-    { name: 'John', chapter: 3, testament: 'New' },
-    { name: 'Psalms', chapter: 23, testament: 'Old' },
-    { name: 'Philippians', chapter: 4, testament: 'New' },
   ];
 
   return (
@@ -77,6 +81,7 @@ export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
       </section>
 
       {/* Recent Reading */}
+      {recentBooks.length > 0 && (
       <section className="space-y-4">
         <Card className="card-divine">
           <CardHeader>
@@ -88,7 +93,7 @@ export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
           <CardContent className="space-y-3">
             {recentBooks.map((book, index) => (
               <div 
-                key={`${book.name}-${book.chapter}`}
+                key={`${book.book}-${book.chapter}`}
                 className="flex items-center justify-between p-4 rounded-lg bg-accent/20 hover:bg-accent/30 transition-colors cursor-pointer"
                 onClick={() => onNavigate('bible')}
               >
@@ -97,8 +102,10 @@ export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
                     <Book className="h-4 w-4 text-primary" />
                   </div>
                   <div>
-                    <p className="font-medium">{book.name} {book.chapter}</p>
-                    <p className="text-sm text-muted-foreground">{book.testament} Testament</p>
+                    <p className="font-medium">{book.book} {book.chapter}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {new Date(book.lastRead).toLocaleDateString()}
+                    </p>
                   </div>
                 </div>
                 <EnhancedButton variant="ghost" size="sm">
@@ -109,6 +116,7 @@ export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
           </CardContent>
         </Card>
       </section>
+      )}
 
       {/* Inspirational Features */}
       <section className="space-y-4">
