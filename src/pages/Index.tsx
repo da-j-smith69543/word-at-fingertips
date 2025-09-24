@@ -1,12 +1,40 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from 'react';
+import { EmpirialHome } from '@/components/EmpirialHome';
+import { BibleReader } from '@/components/BibleReader';
+import { SearchBible } from '@/components/SearchBible';
+import { BookmarksPage } from '@/components/BookmarksPage';
+import { MorePage } from '@/components/MorePage';
+import { BottomNavigation } from '@/components/BottomNavigation';
 
 const Index = () => {
+  const [activeTab, setActiveTab] = useState('home');
+
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'home':
+        return <EmpirialHome onNavigate={setActiveTab} />;
+      case 'bible':
+        return <BibleReader />;
+      case 'search':
+        return <SearchBible />;
+      case 'bookmarks':
+        return <BookmarksPage />;
+      case 'more':
+        return <MorePage />;
+      default:
+        return <EmpirialHome onNavigate={setActiveTab} />;
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/30">
+      {/* Main Content */}
+      <main className="transition-all duration-300">
+        {renderContent()}
+      </main>
+
+      {/* Bottom Navigation */}
+      <BottomNavigation activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 };
