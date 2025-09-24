@@ -1,15 +1,32 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Badge } from '@/components/ui/badge';
-import { Search, Book, Bookmark } from 'lucide-react';
+import { Search, Book, Bookmark, Wifi, WifiOff } from 'lucide-react';
 import { searchVerses, type Verse } from '@/data/bible';
+import { useToast } from '@/hooks/use-toast';
 
 export const SearchBible = () => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Verse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const { toast } = useToast();
+
+  // Monitor online status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleSearch = async (searchQuery: string) => {
     if (!searchQuery.trim()) {
@@ -18,12 +35,28 @@ export const SearchBible = () => {
     }
 
     setIsSearching(true);
-    // Simulate search delay for better UX
-    setTimeout(() => {
-      const searchResults = searchVerses(searchQuery);
+    try {
+      const searchResults = await searchVerses(searchQuery);
       setResults(searchResults);
+      
+      if (searchResults.length === 0 && isOnline) {
+        toast({
+          title: "No Results",
+          description: "Try different keywords or check your spelling",
+          duration: 3000,
+        });
+      }
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "Search Error",
+        description: "Failed to search. Please try again.",
+        variant: "destructive",
+        duration: 3000,
+      });
+    } finally {
       setIsSearching(false);
-    }, 300);
+    }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -37,9 +70,18 @@ export const SearchBible = () => {
       {/* Search Header */}
       <Card className="card-divine">
         <CardHeader>
-          <div className="flex items-center space-x-3">
-            <Search className="h-6 w-6 text-gold" />
-            <CardTitle className="text-2xl">Search Scripture</CardTitle>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3">
+              <Search className="h-6 w-6 text-gold" />
+              <CardTitle className="text-2xl">Search Scripture</CardTitle>
+            </div>
+            <div title={isOnline ? "Connected - Full Bible search available" : "Offline - Limited search"}>
+              {isOnline ? (
+                <Wifi className="h-4 w-4 text-green-500" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-orange-500" />
+              )}
+            </div>
           </div>
         </CardHeader>
         
@@ -47,7 +89,7 @@ export const SearchBible = () => {
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search for verses, books, or keywords..."
+              placeholder={isOnline ? "Search the entire Bible..." : "Search available content..."}
               value={query}
               onChange={handleInputChange}
               className="pl-10 h-12 text-base"
@@ -57,7 +99,8 @@ export const SearchBible = () => {
           {query && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-muted-foreground">
-                {isSearching ? 'Searching...' : `Found ${results.length} result${results.length !== 1 ? 's' : ''}`}
+                {isSearching ? 'Searching scripture...' : `Found ${results.length} result${results.length !== 1 ? 's' : ''}`}
+                {!isOnline && ' (offline search)'}
               </p>
               {results.length > 0 && (
                 <Badge variant="secondary" className="text-gold bg-gold/10">
