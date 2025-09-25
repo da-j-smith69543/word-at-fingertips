@@ -3,7 +3,7 @@ import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { DailyVerse } from './DailyVerse';
 import { Book, Search, Bookmark, Clock, Heart, Star, User } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
-import StorageService from '@/services/StorageService';
+import { useSupabaseReadingHistory } from '@/hooks/use-supabase-reading-history';
 import { useEffect, useState } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 
@@ -14,13 +14,8 @@ interface EmpirialHomeProps {
 }
 
 export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps) => {
-  const [recentBooks, setRecentBooks] = useState<any[]>([]);
-
-  useEffect(() => {
-    // Load recent reading history
-    const history = StorageService.getRecentBooks();
-    setRecentBooks(history.slice(0, 3)); // Show top 3
-  }, []);
+  const { getRecentBooks } = useSupabaseReadingHistory();
+  const recentBooks = getRecentBooks().slice(0, 3);
 
   const quickActions = [
     { id: 'bible', label: 'Read Bible', icon: Book, description: 'Explore the scriptures' },
@@ -128,7 +123,7 @@ export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps
                   <div>
                     <p className="font-medium">{book.book} {book.chapter}</p>
                     <p className="text-sm text-muted-foreground">
-                      {new Date(book.lastRead).toLocaleDateString()}
+                      {new Date(book.last_read_at).toLocaleDateString()}
                     </p>
                   </div>
                 </div>

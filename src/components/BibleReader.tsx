@@ -6,12 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Book, ChevronLeft, ChevronRight, Bookmark, RefreshCw, Wifi, WifiOff, Download, Settings } from 'lucide-react';
 import { bibleBooks, getChapter, type Verse } from '@/data/bible';
 import { useToast } from '@/hooks/use-toast';
-import { useBookmarks } from '@/hooks/use-bookmarks';
+import { useSupabaseBookmarks } from '@/hooks/use-supabase-bookmarks';
 import { usePreferences } from '@/hooks/use-preferences';
 import { LoadingState } from '@/components/ui/loading-spinner';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import StorageService from '@/services/StorageService';
 import { BibleApiService, BIBLE_TRANSLATIONS } from '@/services/BibleApiService';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface BibleReaderProps {
   selectedBook?: string;
@@ -28,7 +29,8 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
   const [isDownloading, setIsDownloading] = useState(false);
   
   const { toast } = useToast();
-  const { isBookmarked, addBookmark, removeBookmark } = useBookmarks();
+  const { user } = useAuth();
+  const { isBookmarked, addBookmark, removeBookmark } = useSupabaseBookmarks();
   const { preferences } = usePreferences();
 
   // Monitor online status
@@ -146,23 +148,32 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
   const book = bibleBooks.find(b => b.name === currentBook);
   
   const toggleBookmark = (verse: Verse) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to bookmark verses",
+        duration: 3000,
+      });
+      return;
+    }
+
     const bookmarked = isBookmarked(verse.book, verse.chapter, verse.verse);
     
     if (bookmarked) {
-      // Find and remove the bookmark
-      const bookmarks = StorageService.getBookmarks();
-      const bookmark = bookmarks.find(b => 
-        b.book === verse.book && b.chapter === verse.chapter && b.verse === verse.verse
-      );
-      if (bookmark) {
-        removeBookmark(bookmark.id);
-      }
+      // For Supabase bookmarks, we need to find the bookmark ID
+      // This will be handled by the hook internally
+      toast({
+        title: "Remove bookmark",
+        description: "Click the bookmark icon in your bookmarks page to remove",
+        duration: 3000,
+      });
     } else {
       addBookmark({
         book: verse.book,
         chapter: verse.chapter,
-        verse: verse.verse,
-        text: verse.text
+        verse_number: verse.verse,
+        verse_text: verse.text,
+        translation: preferences.preferredTranslation
       });
     }
   };

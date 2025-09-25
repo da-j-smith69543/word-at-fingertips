@@ -4,8 +4,16 @@ import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Badge } from '@/components/ui/badge';
 import { Heart, Share2, Bookmark, RefreshCw } from 'lucide-react';
 import { getDailyVerse, type Verse } from '@/data/bible';
+import { useSupabaseBookmarks } from '@/hooks/use-supabase-bookmarks';
+import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
+import { usePreferences } from '@/hooks/use-preferences';
 
 export const DailyVerse = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { addBookmark, isBookmarked } = useSupabaseBookmarks();
+  const { preferences } = usePreferences();
   const [dailyVerse, setDailyVerse] = useState<Verse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
@@ -29,6 +37,60 @@ export const DailyVerse = () => {
       console.error('Error loading daily verse:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBookmark = async () => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to bookmark verses",
+        duration: 3000,
+      });
+      return;
+    }
+
+    if (!dailyVerse) return;
+
+    const bookmarked = isBookmarked(dailyVerse.book, dailyVerse.chapter, dailyVerse.verse);
+    
+    if (!bookmarked) {
+      await addBookmark({
+        book: dailyVerse.book,
+        chapter: dailyVerse.chapter,
+        verse_number: dailyVerse.verse,
+        verse_text: dailyVerse.text,
+        translation: preferences.preferredTranslation
+      });
+    }
+  };
+
+  const handleShare = async () => {
+    if (!dailyVerse) return;
+
+    const shareText = `"${dailyVerse.text}" - ${dailyVerse.book} ${dailyVerse.chapter}:${dailyVerse.verse}`;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Daily Bible Verse',
+          text: shareText,
+        });
+      } catch (error) {
+        // User cancelled sharing
+      }
+    } else {
+      // Fallback to clipboard
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast({
+          title: "Copied to clipboard",
+          description: "Verse copied to clipboard",
+          duration: 2000,
+        });
+      } catch (error) {
+        console.error('Failed to copy to clipboard:', error);
+      }
     }
   };
 
@@ -85,19 +147,29 @@ export const DailyVerse = () => {
 
           {/* Actions */}
           <div className="flex justify-center space-x-3 pt-4">
-            <EnhancedButton variant="ghost" size="sm" className="flex items-center space-x-2">
-              <Heart className="h-4 w-4" />
-              <span>Like</span>
-            </EnhancedButton>
-            
-            <EnhancedButton variant="ghost" size="sm" className="flex items-center space-x-2">
-              <Bookmark className="h-4 w-4" />
+            <EnhancedButton 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2"
+              onClick={handleBookmark}
+            >
+              <Bookmark className={`h-4 w-4 ${dailyVerse && isBookmarked(dailyVerse.book, dailyVerse.chapter, dailyVerse.verse) ? 'fill-current text-gold' : ''}`} />
               <span>Save</span>
             </EnhancedButton>
             
-            <EnhancedButton variant="ghost" size="sm" className="flex items-center space-x-2">
+            <EnhancedButton 
+              variant="ghost" 
+              size="sm" 
+              className="flex items-center space-x-2"
+              onClick={handleShare}
+            >
               <Share2 className="h-4 w-4" />
               <span>Share</span>
+            </EnhancedButton>
+            
+            <EnhancedButton variant="ghost" size="sm" className="flex items-center space-x-2">
+              <Heart className="h-4 w-4" />
+              <span>Like</span>
             </EnhancedButton>
             
             <EnhancedButton 

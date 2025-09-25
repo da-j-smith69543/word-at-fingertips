@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Badge } from '@/components/ui/badge';
 import { Bookmark, Heart, Trash2, Share2, Book, Edit3, User } from 'lucide-react';
-import { useSupabaseBookmarks } from '@/hooks/use-supabase-bookmarks';
+import { useSupabaseBookmarks, type SupabaseBookmark } from '@/hooks/use-supabase-bookmarks';
 import { LoadingState } from '@/components/ui/loading-spinner';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useState } from 'react';
@@ -42,8 +42,8 @@ export const BookmarksPage = () => {
     setNoteText('');
   };
 
-  const handleShare = async (bookmark: any) => {
-    const shareText = `"${bookmark.text}" - ${bookmark.book} ${bookmark.chapter}:${bookmark.verse}`;
+  const handleShare = async (bookmark: SupabaseBookmark) => {
+    const shareText = `"${bookmark.verse_text}" - ${bookmark.book} ${bookmark.chapter}:${bookmark.verse_number}`;
     
     if (navigator.share) {
       try {
@@ -220,7 +220,7 @@ export const BookmarksPage = () => {
 
                     {/* Verse Text */}
                     <blockquote className="text-scripture text-lg leading-relaxed">
-                      "{bookmark.text}"
+                      "{bookmark.verse_text}"
                     </blockquote>
 
                     {/* Note Section */}
@@ -257,7 +257,7 @@ export const BookmarksPage = () => {
 
                     {/* Date Added */}
                     <p className="text-xs text-muted-foreground">
-                      Saved {new Date(bookmark.dateAdded).toLocaleDateString('en-US', {
+                      Saved {new Date(bookmark.created_at).toLocaleDateString('en-US', {
                         year: 'numeric', month: 'short', day: 'numeric'
                       })}
                     </p>
@@ -313,13 +313,13 @@ export const BookmarksPage = () => {
                     <div className="flex items-center space-x-2">
                       <Heart className="h-4 w-4 text-red-500 fill-current" />
                       <Badge variant="outline" className="font-medium border-red-200 text-red-700">
-                        {bookmark.book} {bookmark.chapter}:{bookmark.verse}
+                        {bookmark.book} {bookmark.chapter}:{bookmark.verse_number}
                       </Badge>
                     </div>
                   </div>
 
                   <blockquote className="text-scripture text-lg leading-relaxed">
-                    "{bookmark.text}"
+                    "{bookmark.verse_text}"
                   </blockquote>
                 </div>
               </CardContent>

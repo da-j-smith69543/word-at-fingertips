@@ -103,19 +103,33 @@ export const useSupabaseBookmarks = () => {
   };
 
   // Remove bookmark
-  const removeBookmark = async (id: string) => {
+  const removeBookmark = async (bookmarkOrId: string | { book: string; chapter: number; verse_number: number }) => {
     if (!user) return;
 
+    let bookmarkId: string;
+    
+    if (typeof bookmarkOrId === 'string') {
+      bookmarkId = bookmarkOrId;
+    } else {
+      // Find bookmark by verse details
+      const bookmark = bookmarks.find(b => 
+        b.book === bookmarkOrId.book && 
+        b.chapter === bookmarkOrId.chapter && 
+        b.verse_number === bookmarkOrId.verse_number
+      );
+      if (!bookmark) return;
+      bookmarkId = bookmark.id;
+    }
     try {
       const { error } = await supabase
         .from('bookmarks')
         .delete()
-        .eq('id', id)
+        .eq('id', bookmarkId)
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setBookmarks(prev => prev.filter(b => b.id !== id));
+      setBookmarks(prev => prev.filter(b => b.id !== bookmarkId));
       toast({
         title: 'Bookmark removed',
         description: 'Verse has been removed from your bookmarks'

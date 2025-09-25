@@ -4,7 +4,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Settings, Moon, Sun, Volume2, Bell, Info, MessageCircle, Share2, Type, Download, Upload, Book, Trash2, User, LogOut } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
-import { usePreferences } from '@/hooks/use-preferences';
+import { useSupabasePreferences } from '@/hooks/use-supabase-preferences';
 import StorageService from '@/services/StorageService';
 import { useToast } from '@/hooks/use-toast';
 import { BIBLE_TRANSLATIONS } from '@/services/BibleApiService';
@@ -18,7 +18,7 @@ interface MorePageProps {
 
 export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
   const { signOut } = useAuth();
-  const { preferences, updatePreferences, resetPreferences } = usePreferences();
+  const { preferences, updatePreferences } = useSupabasePreferences();
   const { toast } = useToast();
 
   const handleExportData = () => {
@@ -208,8 +208,8 @@ export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
                   </div>
                 </div>
                 <Select 
-                  value={preferences.theme} 
-                  onValueChange={(value: 'light' | 'dark' | 'system') => 
+                  value={preferences?.theme || 'system'} 
+                  onValueChange={(value: string) => 
                     updatePreferences({ theme: value })
                   }
                 >
@@ -240,9 +240,9 @@ export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
                   </div>
                 </div>
                 <Select 
-                  value={preferences.fontSize} 
-                  onValueChange={(value: 'small' | 'medium' | 'large' | 'xl') => 
-                    updatePreferences({ fontSize: value })
+                  value={preferences?.font_size || 'medium'} 
+                  onValueChange={(value: string) => 
+                    updatePreferences({ font_size: value })
                   }
                 >
                   <SelectTrigger className="w-32">
@@ -260,36 +260,6 @@ export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
           </Card>
 
           {/* Font Family Setting */}
-          <Card className="card-divine">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 rounded-full bg-gold/10">
-                    <Type className="h-5 w-5 text-gold" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium">Font Family</h3>
-                    <p className="text-sm text-muted-foreground">Choose reading font</p>
-                  </div>
-                </div>
-                <Select 
-                  value={preferences.fontFamily} 
-                  onValueChange={(value: 'inter' | 'playfair' | 'system') => 
-                    updatePreferences({ fontFamily: value })
-                  }
-                >
-                  <SelectTrigger className="w-32">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="inter">Inter</SelectItem>
-                    <SelectItem value="playfair">Playfair</SelectItem>
-                    <SelectItem value="system">System</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardContent>
-          </Card>
 
           {/* Translation Setting */}
           <Card className="card-divine">
@@ -305,9 +275,9 @@ export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
                   </div>
                 </div>
                 <Select 
-                  value={preferences.preferredTranslation} 
+                  value={preferences?.preferred_translation || 'kjv'} 
                   onValueChange={(value: string) => 
-                    updatePreferences({ preferredTranslation: value })
+                    updatePreferences({ preferred_translation: value })
                   }
                 >
                   <SelectTrigger className="w-32">
@@ -339,9 +309,9 @@ export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
                   </div>
                 </div>
                 <Switch 
-                  checked={preferences.dailyReminders}
+                  checked={preferences?.daily_reminders || false}
                   onCheckedChange={(checked) => 
-                    updatePreferences({ dailyReminders: checked })
+                    updatePreferences({ daily_reminders: checked })
                   }
                 />
               </div>
@@ -413,7 +383,18 @@ export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
                   size="sm" 
                   onClick={() => {
                     if (confirm('Are you sure? This will delete all your data.')) {
-                      resetPreferences();
+                      if (user) {
+                        // Reset Supabase data
+                        updatePreferences({
+                          theme: 'system',
+                          font_size: 'medium',
+                          daily_reminders: true,
+                          reminder_time: '08:00',
+                          preferred_translation: 'kjv'
+                        });
+                      } else {
+                        StorageService.clearAllData();
+                      }
                       toast({
                         title: "Data Reset",
                         description: "All data has been cleared",

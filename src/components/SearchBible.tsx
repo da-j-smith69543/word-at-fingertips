@@ -6,13 +6,19 @@ import { Badge } from '@/components/ui/badge';
 import { Search, Book, Bookmark, Wifi, WifiOff } from 'lucide-react';
 import { searchVerses, type Verse } from '@/data/bible';
 import { useToast } from '@/hooks/use-toast';
+import { useSupabaseBookmarks } from '@/hooks/use-supabase-bookmarks';
+import { useAuth } from '@/contexts/AuthContext';
+import { usePreferences } from '@/hooks/use-preferences';
 
 export const SearchBible = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const { addBookmark, isBookmarked } = useSupabaseBookmarks();
+  const { preferences } = usePreferences();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<Verse[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const { toast } = useToast();
 
   // Monitor online status
   useEffect(() => {
@@ -63,6 +69,29 @@ export const SearchBible = () => {
     const value = e.target.value;
     setQuery(value);
     handleSearch(value);
+  };
+
+  const handleBookmark = async (verse: Verse) => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to bookmark verses",
+        duration: 3000,
+      });
+      return;
+    }
+
+    const bookmarked = isBookmarked(verse.book, verse.chapter, verse.verse);
+    
+    if (!bookmarked) {
+      await addBookmark({
+        book: verse.book,
+        chapter: verse.chapter,
+        verse_number: verse.verse,
+        verse_text: verse.text,
+        translation: preferences.preferredTranslation
+      });
+    }
   };
 
   return (
@@ -137,9 +166,10 @@ export const SearchBible = () => {
                         <EnhancedButton
                           variant="ghost"
                           size="icon"
+                          onClick={() => handleBookmark(verse)}
                           className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
                         >
-                          <Bookmark className="h-4 w-4" />
+                          <Bookmark className={`h-4 w-4 ${isBookmarked(verse.book, verse.chapter, verse.verse) ? 'fill-current text-gold' : ''}`} />
                         </EnhancedButton>
                       </div>
                       
