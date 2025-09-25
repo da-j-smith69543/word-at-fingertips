@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Moon, Sun, Volume2, Bell, Info, MessageCircle, Share2, Type, Download, Upload } from 'lucide-react';
+import { Settings, Moon, Sun, Volume2, Bell, Info, MessageCircle, Share2, Type, Download, Upload, Book, Trash2 } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 import { usePreferences } from '@/hooks/use-preferences';
 import StorageService from '@/services/StorageService';

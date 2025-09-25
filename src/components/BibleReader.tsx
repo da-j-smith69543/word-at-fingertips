@@ -88,7 +88,7 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
         return;
       }
       
-      const chapterVerses = await getChapter(currentBook, currentChapter, preferences.preferredTranslation);
+      const chapterVerses = await getChapter(currentBook, currentChapter);
       setVerses(chapterVerses);
       
       // Save to offline storage if we got data
