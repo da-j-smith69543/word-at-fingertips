@@ -1,16 +1,18 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Badge } from '@/components/ui/badge';
-import { Bookmark, Heart, Trash2, Share2, Book, Edit3 } from 'lucide-react';
-import { useBookmarks } from '@/hooks/use-bookmarks';
+import { Bookmark, Heart, Trash2, Share2, Book, Edit3, User } from 'lucide-react';
+import { useSupabaseBookmarks } from '@/hooks/use-supabase-bookmarks';
 import { LoadingState } from '@/components/ui/loading-spinner';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { useAuth } from '@/contexts/AuthContext';
 
 export const BookmarksPage = () => {
-  const { bookmarks, removeBookmark, toggleFavorite, updateNote, getFavorites } = useBookmarks();
+  const { user } = useAuth();
+  const { bookmarks, removeBookmark, toggleFavorite, updateNote, getFavorites, loading } = useSupabaseBookmarks();
   const [editingNote, setEditingNote] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
@@ -19,7 +21,7 @@ export const BookmarksPage = () => {
   
   // Filter bookmarks based on search
   const filteredBookmarks = bookmarks.filter(bookmark =>
-    bookmark.text.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    bookmark.verse_text.toLowerCase().includes(searchQuery.toLowerCase()) ||
     bookmark.book.toLowerCase().includes(searchQuery.toLowerCase()) ||
     (bookmark.note && bookmark.note.toLowerCase().includes(searchQuery.toLowerCase()))
   );
@@ -62,6 +64,37 @@ export const BookmarksPage = () => {
       }
     }
   };
+
+  // Show auth prompt if not signed in
+  if (!user) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 space-y-6 pb-24">
+        <Card className="card-divine">
+          <CardContent className="p-8 text-center space-y-4">
+            <div className="flex justify-center">
+              <div className="p-3 rounded-full bg-primary/10">
+                <User className="h-8 w-8 text-primary" />
+              </div>
+            </div>
+            <div>
+              <h2 className="text-2xl font-semibold mb-2">Sign in to view bookmarks</h2>
+              <p className="text-muted-foreground">
+                Your saved verses will appear here when you sign in to your account.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
@@ -134,7 +167,7 @@ export const BookmarksPage = () => {
           {filteredBookmarks.length > 0 ? (
             <div className="space-y-4">
               {filteredBookmarks.map((bookmark) => {
-                const isFavorite = bookmark.isFavorite;
+                const isFavorite = bookmark.is_favorite;
                 const isEditing = editingNote === bookmark.id;
 
                 return (
@@ -146,7 +179,7 @@ export const BookmarksPage = () => {
                       <div className="flex items-center space-x-2">
                         <Book className="h-4 w-4 text-gold" />
                         <Badge variant="outline" className="font-medium">
-                          {bookmark.book} {bookmark.chapter}:{bookmark.verse}
+                          {bookmark.book} {bookmark.chapter}:{bookmark.verse_number}
                         </Badge>
                       </div>
                       <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">

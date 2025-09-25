@@ -2,14 +2,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Settings, Moon, Sun, Volume2, Bell, Info, MessageCircle, Share2, Type, Download, Upload, Book, Trash2 } from 'lucide-react';
+import { Settings, Moon, Sun, Volume2, Bell, Info, MessageCircle, Share2, Type, Download, Upload, Book, Trash2, User, LogOut } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 import { usePreferences } from '@/hooks/use-preferences';
 import StorageService from '@/services/StorageService';
 import { useToast } from '@/hooks/use-toast';
 import { BIBLE_TRANSLATIONS } from '@/services/BibleApiService';
+import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useAuth } from '@/contexts/AuthContext';
 
-export const MorePage = () => {
+interface MorePageProps {
+  onShowAuth?: () => void;
+  user?: SupabaseUser | null;
+}
+
+export const MorePage = ({ onShowAuth, user }: MorePageProps) => {
+  const { signOut } = useAuth();
   const { preferences, updatePreferences, resetPreferences } = usePreferences();
   const { toast } = useToast();
 
@@ -116,6 +124,67 @@ export const MorePage = () => {
           <p className="text-muted-foreground">Customize your Bible reading experience</p>
         </CardHeader>
       </Card>
+
+      {/* Authentication Section */}
+      <section className="space-y-4">
+        <h2 className="text-xl font-semibold flex items-center space-x-2">
+          <User className="h-5 w-5 text-gold" />
+          <span>Account</span>
+        </h2>
+
+        <Card className="card-divine">
+          <CardContent className="p-4">
+            {user ? (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 rounded-full bg-primary/10">
+                      <User className="h-5 w-5 text-primary" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium">Signed in as</h3>
+                      <p className="text-sm text-muted-foreground">{user.email}</p>
+                    </div>
+                  </div>
+                  <EnhancedButton 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={signOut}
+                    className="flex items-center gap-2"
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sign Out
+                  </EnhancedButton>
+                </div>
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Your bookmarks and preferences are synced across all your devices.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center space-y-4 py-4">
+                <div className="flex justify-center">
+                  <div className="p-3 rounded-full bg-primary/10">
+                    <User className="h-6 w-6 text-primary" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="font-medium mb-2">Sign in to sync your data</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Access your bookmarks and preferences on any device
+                  </p>
+                  {onShowAuth && (
+                    <EnhancedButton onClick={onShowAuth}>
+                      Sign In / Sign Up
+                    </EnhancedButton>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </section>
 
       {/* App Settings */}
       <section className="space-y-4">

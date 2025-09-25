@@ -14,7 +14,126 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      bookmarks: {
+        Row: {
+          book: string
+          chapter: number
+          created_at: string
+          highlight_color: string | null
+          id: string
+          is_favorite: boolean | null
+          note: string | null
+          translation: string
+          updated_at: string
+          user_id: string
+          verse_number: number
+          verse_text: string
+        }
+        Insert: {
+          book: string
+          chapter: number
+          created_at?: string
+          highlight_color?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          note?: string | null
+          translation?: string
+          updated_at?: string
+          user_id: string
+          verse_number: number
+          verse_text: string
+        }
+        Update: {
+          book?: string
+          chapter?: number
+          created_at?: string
+          highlight_color?: string | null
+          id?: string
+          is_favorite?: boolean | null
+          note?: string | null
+          translation?: string
+          updated_at?: string
+          user_id?: string
+          verse_number?: number
+          verse_text?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          daily_reminders: boolean | null
+          display_name: string | null
+          email: string | null
+          font_size: string | null
+          id: string
+          preferred_translation: string | null
+          reminder_time: string | null
+          theme: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          daily_reminders?: boolean | null
+          display_name?: string | null
+          email?: string | null
+          font_size?: string | null
+          id?: string
+          preferred_translation?: string | null
+          reminder_time?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          daily_reminders?: boolean | null
+          display_name?: string | null
+          email?: string | null
+          font_size?: string | null
+          id?: string
+          preferred_translation?: string | null
+          reminder_time?: string | null
+          theme?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reading_history: {
+        Row: {
+          book: string
+          chapter: number
+          created_at: string
+          id: string
+          last_read_at: string
+          progress: number | null
+          user_id: string
+        }
+        Insert: {
+          book: string
+          chapter: number
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          progress?: number | null
+          user_id: string
+        }
+        Update: {
+          book?: string
+          chapter?: number
+          created_at?: string
+          id?: string
+          last_read_at?: string
+          progress?: number | null
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
