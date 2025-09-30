@@ -35,8 +35,8 @@ const Index = () => {
     );
   }
 
-  // Show auth page if requested
-  if (showAuthPage) {
+  // Show auth page if user is not authenticated or if requested
+  if (!user || showAuthPage) {
     return <AuthPage onBack={() => setShowAuthPage(false)} />;
   }
 
