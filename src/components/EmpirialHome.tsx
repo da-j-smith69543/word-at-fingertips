@@ -22,13 +22,23 @@ export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps
   const [isInstallable, setIsInstallable] = useState(false);
 
   useEffect(() => {
+    console.log('PWA: Setting up beforeinstallprompt listener');
+    
     const handler = (e: Event) => {
+      console.log('PWA: beforeinstallprompt event fired');
       e.preventDefault();
       setDeferredPrompt(e);
       setIsInstallable(true);
     };
 
     window.addEventListener('beforeinstallprompt', handler);
+    
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      console.log('PWA: App is already installed');
+    } else {
+      console.log('PWA: App is not installed yet');
+    }
 
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
