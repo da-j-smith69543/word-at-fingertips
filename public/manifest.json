@@ -1,0 +1,35 @@
+{
+  "name": "Empirial Bible - The Word at Your Fingertips",
+  "short_name": "Empirial Bible",
+  "description": "Experience the Bible like never before with daily verses, powerful search, bookmarks, and beautiful spiritual design.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#8B5CF6",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["lifestyle", "education", "books"],
+  "shortcuts": [
+    {
+      "name": "Daily Verse",
+      "short_name": "Daily",
+      "description": "View today's daily verse",
+      "url": "/?view=daily",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Search Bible",
+      "short_name": "Search",
+      "description": "Search the scriptures",
+      "url": "/?view=search",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}
