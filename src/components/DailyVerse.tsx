@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { Badge } from '@/components/ui/badge';
-import { Heart, Share2, Bookmark, RefreshCw } from 'lucide-react';
+import { Share2, Bookmark, RefreshCw } from 'lucide-react';
 import { getDailyVerse, type Verse } from '@/data/bible';
 import { useSupabaseBookmarks } from '@/hooks/use-supabase-bookmarks';
 import { useAuth } from '@/contexts/AuthContext';
@@ -68,12 +68,12 @@ export const DailyVerse = () => {
   const handleShare = async () => {
     if (!dailyVerse) return;
 
-    const shareText = `"${dailyVerse.text}" - ${dailyVerse.book} ${dailyVerse.chapter}:${dailyVerse.verse}`;
+    const shareText = `"${dailyVerse.text}" - ${dailyVerse.book} ${dailyVerse.chapter}:${dailyVerse.verse}\n\nFrom Empirial Bible - The Word at Your Fingertips`;
     
     if (navigator.share) {
       try {
         await navigator.share({
-          title: 'Daily Bible Verse',
+          title: 'Daily Bible Verse - Empirial Bible',
           text: shareText,
         });
       } catch (error) {
@@ -129,7 +129,7 @@ export const DailyVerse = () => {
           {/* Header */}
           <div className="space-y-2">
             <Badge variant="secondary" className="text-gold bg-gold/10 font-medium">
-              Daily Verse
+              Verse of the Day
             </Badge>
             <p className="text-sm text-muted-foreground">{today}</p>
           </div>
@@ -165,11 +165,6 @@ export const DailyVerse = () => {
             >
               <Share2 className="h-4 w-4" />
               <span>Share</span>
-            </EnhancedButton>
-            
-            <EnhancedButton variant="ghost" size="sm" className="flex items-center space-x-2">
-              <Heart className="h-4 w-4" />
-              <span>Like</span>
             </EnhancedButton>
             
             <EnhancedButton 

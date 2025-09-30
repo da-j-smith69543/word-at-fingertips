@@ -1,11 +1,12 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { DailyVerse } from './DailyVerse';
-import { Book, Search, Bookmark, Clock, Heart, Star, User } from 'lucide-react';
+import { Book, Search, Bookmark, Clock, Heart, Star, User, Download } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 import { useSupabaseReadingHistory } from '@/hooks/use-supabase-reading-history';
 import { useEffect, useState } from 'react';
 import { User as SupabaseUser } from '@supabase/supabase-js';
+import { useToast } from '@/hooks/use-toast';
 
 interface EmpirialHomeProps {
   onNavigate: (tab: string) => void;
@@ -16,6 +17,46 @@ interface EmpirialHomeProps {
 export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps) => {
   const { getRecentBooks } = useSupabaseReadingHistory();
   const recentBooks = getRecentBooks().slice(0, 3);
+  const { toast } = useToast();
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [isInstallable, setIsInstallable] = useState(false);
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+      setIsInstallable(true);
+    };
+
+    window.addEventListener('beforeinstallprompt', handler);
+
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallClick = async () => {
+    if (!deferredPrompt) {
+      toast({
+        title: "Already Installed",
+        description: "The app is already installed or not installable on this device.",
+        duration: 3000,
+      });
+      return;
+    }
+
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    
+    if (outcome === 'accepted') {
+      toast({
+        title: "Installation Started",
+        description: "Empirial Bible is being installed...",
+        duration: 3000,
+      });
+    }
+    
+    setDeferredPrompt(null);
+    setIsInstallable(false);
+  };
 
   const quickActions = [
     { id: 'bible', label: 'Read Bible', icon: Book, description: 'Explore the scriptures' },
@@ -64,6 +105,30 @@ export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps
           </p>
         </div>
       </header>
+
+      {/* Install PWA Banner */}
+      {isInstallable && (
+        <section>
+          <Card className="card-divine bg-gradient-to-r from-primary/10 to-gold/10 border-primary/20">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-full bg-primary/20">
+                    <Download className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">Install Empirial Bible</h3>
+                    <p className="text-sm text-muted-foreground">Get quick access and offline reading</p>
+                  </div>
+                </div>
+                <EnhancedButton onClick={handleInstallClick} variant="default" size="sm">
+                  Install App
+                </EnhancedButton>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      )}
 
       {/* Daily Verse */}
       <section>
