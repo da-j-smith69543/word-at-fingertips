@@ -116,9 +116,11 @@ export const searchVerses = async (query: string): Promise<Verse[]> => {
 export const getChapter = async (book: string, chapter: number): Promise<Verse[]> => {
   try {
     const bookId = book.toLowerCase().replace(/\s+/g, '');
+    console.log('Fetching chapter from API:', bookId, chapter);
     const apiChapter = await BibleApiService.getChapter(bookId, chapter);
     
     if (apiChapter && apiChapter.verses.length > 0) {
+      console.log('API returned verses:', apiChapter.verses.length);
       return apiChapter.verses.map(verse => ({
         book: verse.book_name,
         chapter: verse.chapter,
@@ -126,13 +128,16 @@ export const getChapter = async (book: string, chapter: number): Promise<Verse[]
         text: verse.text
       }));
     }
+    console.log('API returned no verses');
   } catch (error) {
     console.error('Error getting chapter from API:', error);
   }
   
   // Return sample verses that match the book and chapter
-  return sampleVerses.filter(verse => 
+  const fallbackVerses = sampleVerses.filter(verse => 
     verse.book.toLowerCase() === book.toLowerCase() && 
     verse.chapter === chapter
   );
+  console.log('Returning fallback verses:', fallbackVerses.length);
+  return fallbackVerses;
 };

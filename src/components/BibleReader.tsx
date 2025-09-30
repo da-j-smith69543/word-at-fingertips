@@ -49,6 +49,7 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
 
   // Load chapter content
   useEffect(() => {
+    console.log('Chapter changed:', currentBook, currentChapter);
     loadChapter();
     // Update reading history
     StorageService.updateReadingHistory(currentBook, currentChapter);
@@ -76,6 +77,7 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
   };
 
   const loadChapter = async () => {
+    console.log('Loading chapter:', currentBook, currentChapter);
     setIsLoading(true);
     setError(null);
     
@@ -86,11 +88,13 @@ export const BibleReader = ({ selectedBook = 'John', selectedChapter = 3 }: Bibl
       // Try to load from offline storage first
       const offlineChapter = StorageService.getOfflineChapter(currentBook, currentChapter);
       if (offlineChapter && !isOnline) {
+        console.log('Loaded from offline storage');
         setVerses(offlineChapter.verses);
         return;
       }
       
       const chapterVerses = await getChapter(currentBook, currentChapter);
+      console.log('Verses loaded:', chapterVerses.length);
       setVerses(chapterVerses);
       
       // Save to offline storage if we got data
