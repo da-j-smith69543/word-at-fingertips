@@ -1,20 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { EnhancedButton } from '@/components/ui/enhanced-button';
 import { DailyVerse } from './DailyVerse';
-import { Book, Search, Bookmark, Clock, Heart, Star, User, Download } from 'lucide-react';
+import { Book, Search, Bookmark, Clock, Heart, Star, Download } from 'lucide-react';
 import logoImage from '@/assets/logo.png';
 import { useSupabaseReadingHistory } from '@/hooks/use-supabase-reading-history';
 import { useEffect, useState } from 'react';
-import { User as SupabaseUser } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 
 interface EmpirialHomeProps {
   onNavigate: (tab: string) => void;
-  onShowAuth?: () => void;
-  user?: SupabaseUser | null;
 }
 
-export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps) => {
+export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
   const { getRecentBooks } = useSupabaseReadingHistory();
   const recentBooks = getRecentBooks().slice(0, 3);
   const { toast } = useToast();
@@ -78,33 +75,12 @@ export const EmpirialHome = ({ onNavigate, onShowAuth, user }: EmpirialHomeProps
     <div className="max-w-4xl mx-auto p-6 space-y-8 pb-24">
       {/* Header */}
       <header className="text-center space-y-4">
-        <div className="flex justify-center items-center relative">
+        <div className="flex justify-center items-center">
           <img 
             src={logoImage} 
             alt="Empirial Bible Logo" 
             className="h-20 w-auto"
           />
-          
-          {/* User Status */}
-          <div className="absolute right-0 top-0">
-            {user ? (
-              <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm">
-                <User className="h-4 w-4" />
-                <span>{user.email?.split('@')[0]}</span>
-              </div>
-            ) : (
-              onShowAuth && (
-                <EnhancedButton 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={onShowAuth}
-                  className="text-xs"
-                >
-                  Sign In
-                </EnhancedButton>
-              )
-            )}
-          </div>
         </div>
         <div>
           <h1 className="text-3xl md:text-4xl font-bold text-primary mb-2">
