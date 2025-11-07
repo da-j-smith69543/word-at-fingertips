@@ -70,7 +70,6 @@ export default {
       },
       fontFamily: {
         inter: ['Inter', 'sans-serif'],
-        playfair: ['Playfair Display', 'serif'],
       },
       boxShadow: {
         soft: "var(--shadow-soft)",
