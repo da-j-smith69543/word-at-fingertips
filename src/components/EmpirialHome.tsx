@@ -6,6 +6,7 @@ import logoImage from '@/assets/logo.png';
 import { useSupabaseReadingHistory } from '@/hooks/use-supabase-reading-history';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { MobileMenu } from './MobileMenu';
 
 interface EmpirialHomeProps {
   onNavigate: (tab: string) => void;
@@ -74,7 +75,12 @@ export const EmpirialHome = ({ onNavigate }: EmpirialHomeProps) => {
   return (
     <div className="max-w-4xl mx-auto p-6 space-y-8 pb-24">
       {/* Header */}
-      <header className="text-center space-y-4">
+      <header className="text-center space-y-4 relative">
+        {/* Mobile Menu - Only visible on small screens */}
+        <div className="absolute left-0 top-0 md:hidden">
+          <MobileMenu activeTab="home" onNavigate={onNavigate} />
+        </div>
+        
         <div className="flex justify-center items-center">
           <img 
             src={logoImage} 
